@@ -122,8 +122,11 @@
               { day:'Fr', type:'tempo', duration:'28–30 Min', detail:'@ 5:05/km', hf:'163–175' },
               { day:'So', type:'long', duration:'60 Min', detail:'locker', hf:'140–155' }
             ],
-            recoveryWeek: 16,
-            testWeek: 16
+            testWeek: 16,
+            testSession: {
+              day:'Sa', type:'Testlauf', duration:'5 km',
+              detail:'2 Tage Ruhe davor · Bestleistung anstreben', hf:'bis 196'
+            }
           }
         ]
       };
@@ -195,30 +198,51 @@
           sessionsDiv.className = 'sessions';
 
           block.weeks.forEach(week => {
-            const isRecovery = week === block.recoveryWeek;
-            const isTest = week === block.testWeek;
+            const isTest = (week === block.testWeek);
 
-            block.sessions.forEach(session => {
-              const sessionId = `${block.id}-w${week}-${session.day.toLowerCase()}`;
+            if (isTest && block.testSession) {
+              const session = block.testSession;
+              const sessionId = `${block.id}-w${week}-test`;
               const completed = isCompleted(sessionId);
 
               const row = document.createElement('div');
-              row.className = `session${isRecovery ? ' recovery' : ''}${isTest ? ' test-session' : ''}`;
-
+              row.className = 'session test-session';
               row.innerHTML = `
-                <div class="day-tag" style="color:${isTest ? 'white' : '#1d4ed8'}">${session.day}</div>
+                <div class="day-tag" style="color:white">${session.day}</div>
                 <div class="session-info">
                   <div class="session-type">${session.type} · Woche ${week}</div>
                   <div class="session-detail">${session.duration} – ${session.detail}</div>
                 </div>
-                <div class="session-hf" style="${isTest ? 'background:#2d2d44; color:white' : ''}">HF ${session.hf}</div>
-                <label class="checkbox-label">
+                <div class="session-hf" style="background:#2d2d44; color:white">HF ${session.hf}</div>
+                <label class="checkbox-label" style="background:#2d2d44; color:white">
                   <input type="checkbox" data-id="${sessionId}" ${completed ? 'checked' : ''}>
-                  <span>${isTest ? 'Test erledigt' : 'Erledigt'}</span>
+                  <span>Test erledigt</span>
                 </label>
               `;
               sessionsDiv.appendChild(row);
-            });
+            } else {
+              // Normale Sessions
+              block.sessions.forEach(session => {
+                const sessionId = `${block.id}-w${week}-${session.day.toLowerCase()}`;
+                const completed = isCompleted(sessionId);
+
+                const row = document.createElement('div');
+                row.className = 'session';
+                row.innerHTML = `
+                  <div class="day-tag" style="color:#1d4ed8">${session.day}</div>
+                  <div class="session-info">
+                    <div class="session-type">${session.type} · Woche ${week}</div>
+                    <div class="session-detail">${session.duration} – ${session.detail}</div>
+                  </div>
+                  <div class="session-hf">HF ${session.hf}</div>
+                  <label class="checkbox-label">
+                    <input type="checkbox" data-id="${sessionId}" ${completed ? 'checked' : ''}>
+                    <span>Erledigt</span>
+                  </label>
+                `;
+                sessionsDiv.appendChild(row);
+              });
+            }
           });
 
           blockDiv.appendChild(sessionsDiv);
@@ -234,9 +258,16 @@
       }
 
       function updateProgress() {
-        const totalSessions = plan.blocks.reduce((sum, block) => {
-          return sum + (block.weeks.length * block.sessions.length);
-        }, 0);
+        let totalSessions = 0;
+        plan.blocks.forEach(block => {
+          block.weeks.forEach(week => {
+            if (week === block.testWeek && block.testSession) {
+              totalSessions += 1; // Testwoche: nur eine Einheit
+            } else {
+              totalSessions += block.sessions.length;
+            }
+          });
+        });
         const completedCount = Object.keys(state).length;
         const percent = totalSessions ? Math.round((completedCount / totalSessions) * 100) : 0;
 
