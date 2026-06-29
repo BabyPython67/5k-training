@@ -242,12 +242,18 @@
 
     .session-row {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 8px;
       padding: 8px;
       background: white;
       border-radius: 6px;
       border: 1px solid #e5e7eb;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .session-row:active {
+      background: #f9f9f7;
     }
 
     .week-group.recovery .session-row {
@@ -255,9 +261,17 @@
       border-color: #d4f0e8;
     }
 
+    .week-group.recovery .session-row:active {
+      background: #f0f9ff;
+    }
+
     .week-group.completed .session-row {
       background: #fafaf9;
       border-color: #d4d4d8;
+    }
+
+    .week-group.completed .session-row:active {
+      background: #f5f5f4;
     }
 
     .session-row.done {
@@ -309,8 +323,16 @@
     .checkbox-wrapper {
       display: flex;
       align-items: center;
+      justify-content: center;
       flex-shrink: 0;
-      padding: 4px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+
+    .session-row:active .checkbox-wrapper {
+      background: rgba(0, 0, 0, 0.05);
     }
 
     input[type="checkbox"] {
@@ -318,6 +340,7 @@
       height: 22px;
       cursor: pointer;
       accent-color: #4caf50;
+      pointer-events: auto;
     }
 
     /* ──── TEST SESSION ──── */
@@ -360,8 +383,14 @@
       padding: 10px;
       border-radius: 6px;
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .test-session-row:active {
+      background: #3a3a52;
     }
 
     .test-session-row.done {
@@ -478,6 +507,11 @@
       input[type="checkbox"] {
         width: 20px;
         height: 20px;
+      }
+
+      .checkbox-wrapper {
+        width: 26px;
+        height: 26px;
       }
     }
 
@@ -745,9 +779,15 @@
             testGroup.appendChild(testRow);
             weeksContainer.appendChild(testGroup);
 
-            // Event listener
-            testRow.querySelector('input').addEventListener('change', (e) => {
-              setCompleted(e.target.dataset.id, e.target.checked);
+            // Event listener - direkt auf Checkbox & auf Row
+            const checkbox = testRow.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => {
+              setCompleted(sessionId, checkbox.checked);
+            });
+            testRow.addEventListener('click', (e) => {
+              e.preventDefault();
+              checkbox.checked = !checkbox.checked;
+              setCompleted(sessionId, checkbox.checked);
             });
           } else {
             // Normal Week
@@ -792,9 +832,15 @@
               `;
               sessionsInWeek.appendChild(row);
 
-              // Event listener
-              row.querySelector('input').addEventListener('change', (e) => {
-                setCompleted(e.target.dataset.id, e.target.checked);
+              // Event listener - direkt auf Checkbox & auf Row
+              const checkbox = row.querySelector('input[type="checkbox"]');
+              checkbox.addEventListener('change', () => {
+                setCompleted(sessionId, checkbox.checked);
+              });
+              row.addEventListener('click', (e) => {
+                e.preventDefault();
+                checkbox.checked = !checkbox.checked;
+                setCompleted(sessionId, checkbox.checked);
               });
             });
 
