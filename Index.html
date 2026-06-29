@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5K Running Coach</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f0; color: #1a1a1a; line-height: 1.4;
+      padding: 24px 16px;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    header {
+      background: #1a1a2e; color: white; border-radius: 20px;
+      padding: 32px 28px; margin-bottom: 24px;
+    }
+    .progress-bar {
+      background: #e5e7eb; border-radius: 8px; height: 10px; margin: 12px 0;
+    }
+    .progress-fill { background: #4caf50; height: 100%; width: 0%; border-radius: 8px; transition: width 0.3s; }
+    .block {
+      background: white; border-radius: 16px; margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden;
+    }
+    .block-header {
+      padding: 18px 24px; color: white; display: flex;
+      justify-content: space-between; align-items: center;
+    }
+    .block-header h2 { font-size: 18px; font-weight: 700; }
+    .sessions { padding: 0; }
+    .session {
+      display: flex; align-items: center; padding: 14px 24px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .session:last-child { border-bottom: none; }
+    .day-tag {
+      width: 40px; font-weight: 700; font-size: 14px; color: #1d4ed8;
+    }
+    .session-info { flex: 1; margin: 0 12px; }
+    .session-type { font-weight: 600; font-size: 15px; }
+    .session-detail { font-size: 13px; color: #6b7280; }
+    .session-hf { font-size: 12px; font-weight: 600; color: #374151; background: #f3f4f6; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+    .checkbox-label {
+      display: flex; align-items: center; gap: 6px; font-size: 14px;
+      font-weight: 600; background: #f3f4f6; padding: 6px 12px;
+      border-radius: 8px; cursor: pointer; user-select: none;
+    }
+    .checkbox-label input { width: 18px; height: 18px; accent-color: #4caf50; }
+    button {
+      padding: 10px 16px; background: #f3f4f6; border: none;
+      border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+    .recovery { background: #fef2f2; }
+    .test-session { background: #1a1a2e; color: white; }
+    .test-session .checkbox-label { background: #2d2d44; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <header>
+      <div style="font-size: 12px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.7;">Lauftraining</div>
+      <h1 style="font-size: 32px; margin: 8px 0;">5 km Trainingsplan</h1>
+      <p>16 Wochen · Interaktiver Tracker</p>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div id="progress-text" style="font-size: 14px; font-weight: 600;">0% erledigt</div>
+    </header>
+    <div id="blocks-container"></div>
+    <button id="reset-btn" style="margin-top: 12px;">↺ Fortschritt zurücksetzen</button>
+  </div>
+
+  <script>
+    (function() {
+      // ─── Datenmodell ──────────────────────────────────
+      const plan = {
+        id: '5k-standard',
+        name: '5 km Trainingsplan',
+        blocks: [
+          {
+            id: 'block1', title: 'Einstieg', focus: 'Konsistenz aufbauen',
+            color: '#2c5f8a', weeks: [1,2,3,4],
+            sessions: [
+              { day:'Mo', type:'easy', duration:'30 Min', detail:'locker, konversationstauglich', hf:'130–138' },
+              { day:'Mi', type:'interval', duration:'5×800 m', detail:'@ 4:35/km · 2 Min Pause', hf:'180–188' },
+              { day:'Fr', type:'tempo', duration:'18–20 Min', detail:'@ 5:15/km', hf:'162–172' },
+              { day:'So', type:'long', duration:'45–50 Min', detail:'sehr locker', hf:'140–155' }
+            ],
+            recoveryWeek: 4
+          },
+          {
+            id: 'block2', title: 'Entwicklung', focus: 'Intervalle verlängern',
+            color: '#1e6b5a', weeks: [5,6,7,8],
+            sessions: [
+              { day:'Mo', type:'easy', duration:'32–35 Min', detail:'sehr locker halten', hf:'130–140' },
+              { day:'Mi', type:'interval', duration:'5×1000 m', detail:'@ 4:35/km · 2,5 Min Pause', hf:'180–188' },
+              { day:'Fr', type:'tempo', duration:'22–25 Min', detail:'@ 5:12/km', hf:'162–174' },
+              { day:'So', type:'long', duration:'50–55 Min', detail:'Grundlage', hf:'140–155' }
+            ],
+            recoveryWeek: 8
+          },
+          {
+            id: 'block3', title: 'Intensität', focus: 'Schwelle verschieben',
+            color: '#7b3a6b', weeks: [9,10,11,12],
+            sessions: [
+              { day:'Mo', type:'easy', duration:'35 Min', detail:'Erholung ermöglichen', hf:'130–140' },
+              { day:'Mi', type:'interval', duration:'4×1200 m', detail:'@ 4:40/km · 2,5 Min Pause', hf:'180–188' },
+              { day:'Fr', type:'tempo', duration:'25–28 Min', detail:'@ 5:10/km', hf:'163–175' },
+              { day:'So', type:'long', duration:'55–60 Min', detail:'Umfang ist der Reiz', hf:'140–155' }
+            ],
+            recoveryWeek: 12
+          },
+          {
+            id: 'block4', title: 'Test / Taper', focus: 'Alles zusammenführen',
+            color: '#8a4a1e', weeks: [13,14,15,16],
+            sessions: [
+              { day:'Mo', type:'easy', duration:'35 Min', detail:'Grundlage erhalten', hf:'130–140' },
+              { day:'Mi', type:'interval', duration:'3×1500 m', detail:'@ 4:40/km · 3 Min Pause', hf:'180–188' },
+              { day:'Fr', type:'tempo', duration:'28–30 Min', detail:'@ 5:05/km', hf:'163–175' },
+              { day:'So', type:'long', duration:'60 Min', detail:'locker', hf:'140–155' }
+            ],
+            recoveryWeek: 16,
+            testWeek: 16
+          }
+        ]
+      };
+
+      // ─── State Management ────────────────────────────
+      const STORAGE_KEY = 'running-coach-progress';
+      let state = {};
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          state = raw ? JSON.parse(raw) : {};
+        } catch (e) {
+          state = {};
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function isCompleted(sessionId) {
+        return Boolean(state[sessionId]);
+      }
+
+      function setCompleted(sessionId, completed) {
+        if (completed) {
+          state[sessionId] = true;
+        } else {
+          delete state[sessionId];
+        }
+        saveState();
+        updateProgress();
+      }
+
+      function resetAll() {
+        state = {};
+        saveState();
+        renderBlocks();
+        updateProgress();
+      }
+
+      // ─── Rendering ───────────────────────────────────
+      const blocksContainer = document.getElementById('blocks-container');
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+
+      function renderBlocks() {
+        blocksContainer.innerHTML = '';
+        plan.blocks.forEach(block => {
+          const blockDiv = document.createElement('div');
+          blockDiv.className = 'block';
+
+          // Header
+          const header = document.createElement('div');
+          header.className = 'block-header';
+          header.style.background = block.color;
+          header.innerHTML = `
+            <div>
+              <h2>${block.title}</h2>
+              <div style="font-size:12px; opacity:0.8;">${block.focus}</div>
+            </div>
+            <div style="font-size:13px; opacity:0.8;">Wochen ${block.weeks[0]}–${block.weeks[block.weeks.length-1]}</div>
+          `;
+          blockDiv.appendChild(header);
+
+          // Sessions
+          const sessionsDiv = document.createElement('div');
+          sessionsDiv.className = 'sessions';
+
+          block.weeks.forEach(week => {
+            const isRecovery = week === block.recoveryWeek;
+            const isTest = week === block.testWeek;
+
+            block.sessions.forEach(session => {
+              const sessionId = `${block.id}-w${week}-${session.day.toLowerCase()}`;
+              const completed = isCompleted(sessionId);
+
+              const row = document.createElement('div');
+              row.className = `session${isRecovery ? ' recovery' : ''}${isTest ? ' test-session' : ''}`;
+
+              row.innerHTML = `
+                <div class="day-tag" style="color:${isTest ? 'white' : '#1d4ed8'}">${session.day}</div>
+                <div class="session-info">
+                  <div class="session-type">${session.type} · Woche ${week}</div>
+                  <div class="session-detail">${session.duration} – ${session.detail}</div>
+                </div>
+                <div class="session-hf" style="${isTest ? 'background:#2d2d44; color:white' : ''}">HF ${session.hf}</div>
+                <label class="checkbox-label">
+                  <input type="checkbox" data-id="${sessionId}" ${completed ? 'checked' : ''}>
+                  <span>${isTest ? 'Test erledigt' : 'Erledigt'}</span>
+                </label>
+              `;
+              sessionsDiv.appendChild(row);
+            });
+          });
+
+          blockDiv.appendChild(sessionsDiv);
+          blocksContainer.appendChild(blockDiv);
+        });
+
+        // Event delegation
+        document.querySelectorAll('input[data-id]').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            setCompleted(e.target.dataset.id, e.target.checked);
+          });
+        });
+      }
+
+      function updateProgress() {
+        const totalSessions = plan.blocks.reduce((sum, block) => {
+          return sum + (block.weeks.length * block.sessions.length);
+        }, 0);
+        const completedCount = Object.keys(state).length;
+        const percent = totalSessions ? Math.round((completedCount / totalSessions) * 100) : 0;
+
+        progressFill.style.width = percent + '%';
+        progressText.textContent = `${completedCount} / ${totalSessions} Einheiten · ${percent}%`;
+      }
+
+      // ─── Initialisierung ─────────────────────────────
+      loadState();
+      renderBlocks();
+      updateProgress();
+
+      document.getElementById('reset-btn').addEventListener('click', () => {
+        if (confirm('Gesamten Fortschritt auf null setzen?')) {
+          resetAll();
+        }
+      });
+
+      // ─── PWA Service Worker Registrierung ───────────
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registered'))
+            .catch(err => console.log('SW registration failed', err));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
